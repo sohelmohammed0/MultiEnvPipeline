@@ -13,16 +13,34 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    # Map branches to environments
-    environment: ${{ github.ref_name == 'main' && 'prod' || 'test' }}
-
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Detect Environment
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+            echo "ENVIRONMENT=production" >> $GITHUB_ENV
+            echo "ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY_PROD }}" >> $GITHUB_ENV
+            echo "LAMBDA_NAME=${{ secrets.LAMBDA_FUNCTION_NAME_PROD }}" >> $GITHUB_ENV
+          else
+            echo "ENVIRONMENT=test" >> $GITHUB_ENV
+            echo "ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY_TEST }}" >> $GITHUB_ENV
+            echo "LAMBDA_NAME=${{ secrets.LAMBDA_FUNCTION_NAME_TEST }}" >> $GITHUB_ENV
+          fi
+
       - name: Set Image URI
         run: |
-          echo "IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}" >> $GITHUB_ENV
+          echo "IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$ECR_REPOSITORY" >> $GITHUB_ENV
+
+      - name: Debug Variables
+        run: |
+          echo "Branch: ${GITHUB_REF##*/}"
+          echo "Environment: $ENVIRONMENT"
+          echo "Repository: $ECR_REPOSITORY"
+          echo "Lambda: $LAMBDA_NAME"
+          echo "Image URI: $IMAGE_URI"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -54,5 +72,5 @@ jobs:
       - name: Deploy to Lambda
         run: |
           aws lambda update-function-code \
-            --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
+            --function-name $LAMBDA_NAME \
             --image-uri $IMAGE_URI:$IMAGE_TAG
