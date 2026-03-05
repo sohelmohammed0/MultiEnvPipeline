@@ -6,9 +6,9 @@ def handler(event, context):
         },
         "body": """
         <html>
-            <body style="background-color:blue;">
+            <body style="background-color:yellow;">
                 <h1 style="color:white;text-align:center;margin-top:20%;">
-                    BLUE test LAMBDA
+                    Yellow update test LAMBDA
                 </h1>
             </body>
         </html>
